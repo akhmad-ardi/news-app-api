@@ -10,8 +10,8 @@ class UserService
     public function register(array $data)
     {
         try {
-            $user = User::where('email', '=', $data['email'])->first();
-            if ($user) {
+            $user_already_exist = User::where('email', '=', $data['email'])->first();
+            if ($user_already_exist) {
                 throw new \Exception('user already exist');
             }
 

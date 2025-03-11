@@ -131,6 +131,7 @@ class RegistrationApiTest extends TestCase
         $response = $this->postJson('/api/register', $register_data);
 
         $response->assertStatus(201);
-        $response->assertSee(['registration successful', 'token']);
+        $response->assertJson(['message' => 'registration successful']);
+        $response->assertSee(['token']);
     }
 }

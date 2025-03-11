@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class News extends Model
 {
@@ -20,6 +22,7 @@ class News extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'user_id',
         'thumbnail',
         'title',
         'slug',
@@ -27,5 +30,13 @@ class News extends Model
         'body'
     ];
 
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
+    public function pictures(): HasMany
+    {
+        return $this->hasMany(Picture::class, 'news_id', 'id');
+    }
 }

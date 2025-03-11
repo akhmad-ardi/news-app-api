@@ -19,7 +19,9 @@ class LoginApiTest extends TestCase
             'password_confirmation' => '123456'
         ];
 
-        $this->postJson('/api/register', $data);
+        $response = $this->postJson('/api/register', $data);
+
+        return $response->json('token');
     }
 
     public function test_login_fail_all_input(): void
@@ -105,20 +107,10 @@ class LoginApiTest extends TestCase
 
     public function test_logout_success()
     {
-        $this->registration_user();
+        $token = $this->registration_user();
 
-        $data = [
-            'email' => 'test@gmail.com',
-            'password' => '123456',
-        ];
-
-        $response_login = $this->postJson('/api/login', [
-            'email' => $data['email'],
-            'password' => $data['password']
-        ]);
-
-        $response = $this->getJson('/api/logout', [
-            'Authorization' => 'Bearer ' . $response_login->json('token')
+        $response = $this->deleteJson('/api/logout', [], [
+            'Authorization' => 'Bearer ' . $token
         ]);
 
         $response->assertStatus(200);
