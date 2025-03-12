@@ -32,17 +32,17 @@ class NewsService
                     'thumbnail' => $thumbnail_path
                 ]);
 
-                $pictures_path = [];
+                $pictures = [];
                 foreach ($data['pictures'] as $file) {
                     $picture_path = $file->store('pictures', 'public');
 
-                    $pictures_path[] = [
+                    $pictures[] = [
                         'news_id' => $news->id,
                         'name' => $picture_path,
                     ];
                 }
 
-                Picture::insert($pictures_path); // Batch insert lebih efisien
+                Picture::insert($pictures); // Batch insert lebih efisien
             });
 
             return [
@@ -101,6 +101,48 @@ class NewsService
         } catch (\Throwable $th) {
             return [
                 'message' => 'something error',
+                'status_code' => 500
+            ];
+        }
+    }
+
+    public function update_pictures_news($user_id, $slug, array $data)
+    {
+        try {
+            $news = News::where([
+                ['user_id', '=', $user_id],
+                ['slug', '=', $slug]
+            ])->first();
+
+            $pictures = Picture::where([
+                ['news_id', '=', $news->id]
+            ])->get();
+
+            foreach ($pictures as $picture) {
+                Storage::disk('public')->delete('pictures' . $picture->name);
+
+                $picture->delete();
+            }
+
+            $new_pictures = [];
+            foreach ($data['pictures'] as $picture) {
+                $picture_path = $picture->store('pictures', 'public');
+
+                $new_pictures[] = [
+                    'news_id' => $news->id,
+                    'name' => $picture_path,
+                ];
+            }
+
+            Picture::insert($new_pictures);
+
+            return [
+                'message' => 'pictures updated successfuly',
+                'status_code' => 200
+            ];
+        } catch (\Throwable $th) {
+            return [
+                'message' => $th->getMessage(),
                 'status_code' => 500
             ];
         }

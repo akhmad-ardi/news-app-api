@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\NewsCreateRequest;
 use App\Http\Requests\NewsUpdateRequest;
 use App\Http\Requests\NewsUpdateThumbnailRequest;
+use App\Http\Requests\NewsUpdatePicturesRequest;
 use App\Services\NewsService;
 use Illuminate\Http\Request;
 
@@ -84,8 +85,22 @@ class NewsController extends Controller
             ], $process_update_thumbnail_news['status_code']);
     }
 
-    public function update_pictures_news()
+    public function update_pictures_news(NewsUpdatePicturesRequest $request, string $slug)
     {
+        $user = $request->user();
+
+        $data = $request->validated();
+
+        $process_update_pictures_news = $this->news_service->update_pictures_news(
+            $user->id,
+            $slug,
+            $data
+        );
+
+        return response()
+            ->json([
+                'message' => $process_update_pictures_news['message']
+            ], $process_update_pictures_news['status_code']);
     }
 
     public function delete_news(Request $request, string $slug)

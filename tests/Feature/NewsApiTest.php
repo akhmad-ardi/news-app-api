@@ -180,6 +180,7 @@ class NewsApiTest extends TestCase
     }
 
     /* ---Update thumbnail News--- */
+
     public function test_update_thumbnail_news_fail_all_input()
     {
         $news = $this->request_create_news($this->data_news);
@@ -218,6 +219,47 @@ class NewsApiTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJson(['message' => 'thumbnail news updated']);
+    }
+
+    /* ---Update Pictures News--- */
+    public function test_update_pictures_fail_all_input()
+    {
+        $news = $this->request_create_news($this->data_news);
+
+        $slug = Utils::slug($this->data_news['title']);
+
+        $response = $this->putJson(
+            '/api/news/pictures/' . $slug,
+            [],
+            [
+                'Authorization' => 'Bearer ' . $news['token_user']
+            ]
+        );
+
+        $response->assertStatus(422);
+        $response->assertJsonStructure(['errors']);
+    }
+
+    public function test_update_pictures_success()
+    {
+        $news = $this->request_create_news($this->data_news);
+
+        $slug = Utils::slug($this->data_news['title']);
+
+        $images = $this->create_file_images();
+
+        $response = $this->putJson(
+            '/api/news/pictures/' . $slug,
+            [
+                'pictures' => $images['pictures']
+            ],
+            [
+                'Authorization' => 'Bearer ' . $news['token_user']
+            ]
+        );
+
+        $response->assertStatus(200);
+        $response->assertJson(['message' => 'pictures updated successfuly']);
     }
 
     /* ---Delete News--- */
