@@ -7,6 +7,7 @@ use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
+use App\Lib\Utils;
 
 class NewsApiTest extends TestCase
 {
@@ -17,6 +18,11 @@ class NewsApiTest extends TestCase
         'email' => 'test@gmail.com',
         'password' => '123456',
         'password_confirmation' => '123456'
+    ];
+
+    private $data_news = [
+        'title' => 'test',
+        'body' => 'test',
     ];
 
     private function register_user()
@@ -40,13 +46,15 @@ class NewsApiTest extends TestCase
         return ['thumbnail' => $thumbnail, 'pictures' => $pictures];
     }
 
-    private function request_create_news(array $data)
+    private function request_create_news(array $data, string $token = "")
     {
-        $token = $this->register_user();
+        if (strlen($token) == 0) {
+            $token = $this->register_user();
+        }
 
         $file_images = $this->create_file_images();
 
-        return $this->post(
+        $response = $this->post(
             '/api/news',
             array_merge($data, [
                 'thumbnail' => $file_images['thumbnail'],
@@ -57,49 +65,44 @@ class NewsApiTest extends TestCase
                 'Authorization' => 'Bearer ' . $token
             ]
         );
+
+        return [
+            'response' => $response,
+            'token_user' => $token
+        ];
     }
 
-    public function test_create_news_fail_all_input(): void
-    {
-        $response = $this->request_create_news([]);
+    /*-----------------------------------------------------------*/
 
-        $response->assertStatus(422);
-        $response->assertJsonStructure(['errors']);
+    /* ---Create News--- */
+
+    public function test_create_news_fail_all_input()
+    {
+        $news = $this->request_create_news([]);
+
+        $news['response']->assertStatus(422);
+        $news['response']->assertJsonStructure(['errors']);
     }
 
     public function test_create_news_already_exist()
     {
-        $this->request_create_news([
-            'title' => 'test',
-            'slug' => 'test',
-            'excerpt' => 'test',
-            'body' => 'test',
+        $this->request_create_news($this->data_news);
 
-        ]);
+        $news = $this->request_create_news($this->data_news);
 
-        $response = $this->request_create_news([
-            'title' => 'test',
-            'slug' => 'test',
-            'excerpt' => 'test',
-            'body' => 'test',
-        ]);
-
-        $response->assertStatus(400);
-        $response->assertJsonStructure(['message']);
+        $news['response']->assertStatus(422);
+        $news['response']->assertJsonStructure(['errors']);
     }
 
     public function test_create_news_success()
     {
-        $response = $this->request_create_news([
-            'title' => 'test',
-            'slug' => 'test',
-            'excerpt' => 'test',
-            'body' => 'test',
-        ]);
+        $news = $this->request_create_news($this->data_news);
 
-        $response->assertStatus(201);
-        $response->assertJsonStructure(['message']);
+        $news['response']->assertStatus(201);
+        $news['response']->assertJsonStructure(['message']);
     }
+
+    /* ---Get News--- */
 
     public function test_get_news_success()
     {
@@ -107,5 +110,142 @@ class NewsApiTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure(['data']);
+    }
+
+    /* ---Update News--- */
+
+    public function test_update_news_fail_all_input()
+    {
+        $news = $this->request_create_news($this->data_news);
+
+        $slug = Utils::slug($this->data_news['title']);
+
+        $response = $this->putJson(
+            '/api/news/' . $slug,
+            [],
+            [
+                'Authorization' => 'Bearer ' . $news['token_user']
+            ]
+        );
+
+        $response->assertStatus(422);
+        $response->assertJsonStructure(['errors' => ['title', 'body']]);
+    }
+
+    public function test_update_news_already_exist()
+    {
+        $news = $this->request_create_news($this->data_news);
+
+        $this->request_create_news([
+            'title' => 'test 1',
+            'body' => 'test 1'
+        ], $news['token_user']);
+
+        $slug = Utils::slug($this->data_news['title']);
+
+        $response = $this->putJson(
+            '/api/news/' . $slug,
+            [
+                'title' => 'test 1',
+                'body' => 'test 1'
+            ],
+            [
+                'Authorization' => 'Bearer ' . $news['token_user']
+            ]
+        );
+
+        $response->assertStatus(422);
+        $response->assertJsonStructure(['errors' => ['title']]);
+    }
+
+    public function test_update_news_success()
+    {
+        $news = $this->request_create_news($this->data_news);
+
+        $slug = Utils::slug($this->data_news['title']);
+
+        $response = $this->putJson(
+            '/api/news/' . $slug,
+            [
+                'title' => 'test 1',
+                'body' => 'test 1'
+            ],
+            [
+                'Authorization' => 'Bearer ' . $news['token_user']
+            ]
+        );
+
+        $response->assertStatus(200);
+        $response->assertJson(['message' => 'news updated']);
+    }
+
+    /* ---Update thumbnail News--- */
+    public function test_update_thumbnail_news_fail_all_input()
+    {
+        $news = $this->request_create_news($this->data_news);
+
+        $slug = Utils::slug($this->data_news['title']);
+
+        $response = $this->putJson(
+            '/api/news/thumbnail/' . $slug,
+            [],
+            [
+                'Authorization' => 'Bearer ' . $news['token_user']
+            ]
+        );
+
+        $response->assertStatus(422);
+        $response->assertJsonStructure(['errors']);
+    }
+
+    public function test_update_thumbnail_news_success()
+    {
+        $news = $this->request_create_news($this->data_news);
+
+        $slug = Utils::slug($this->data_news['title']);
+
+        $images = $this->create_file_images();
+
+        $response = $this->putJson(
+            '/api/news/thumbnail/' . $slug,
+            [
+                'thumbnail' => $images['thumbnail']
+            ],
+            [
+                'Authorization' => 'Bearer ' . $news['token_user']
+            ]
+        );
+
+        $response->assertStatus(200);
+        $response->assertJson(['message' => 'thumbnail news updated']);
+    }
+
+    /* ---Delete News--- */
+
+    public function test_delete_news_not_found()
+    {
+        $token = $this->register_user();
+
+        $response = $this->deleteJson('/api/news/test', [], [
+            'Authorization' => 'Bearer ' . $token
+        ]);
+
+        $response->assertStatus(404);
+        $response->assertJson(['message' => 'news not found']);
+    }
+
+    public function test_delete_news_success()
+    {
+        $news = $this->request_create_news($this->data_news);
+
+        $response = $this->deleteJson(
+            '/api/news/' . Utils::slug($this->data_news['title']),
+            [],
+            [
+                'Authorization' => 'Bearer ' . $news['token_user']
+            ]
+        );
+
+        $response->assertStatus(200);
     }
 }

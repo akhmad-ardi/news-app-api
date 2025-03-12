@@ -8,7 +8,7 @@ use App\Models\News;
 use App\Lib\Utils;
 use Closure;
 
-class NewsCreateRequest extends FormRequest
+class NewsUpdateRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -30,20 +30,25 @@ class NewsCreateRequest extends FormRequest
                 'required',
                 function (string $attribute, mixed $value, Closure $fail) {
                     $user = Auth::user();
+                    $current_slug = $this->route('slug');
+                    $new_slug = Utils::slug($value);
 
-                    $news_already_exist = News::where([
+                    $current_news = News::where([
                         ['user_id', '=', $user->id],
-                        ['slug', '=', Utils::slug($value)]
+                        ['slug', '=', $current_slug]
                     ])->first();
-                    if ($news_already_exist) {
+
+                    $new_news = News::where([
+                        ['user_id', '=', $user->id],
+                        ['slug', '=', $new_slug]
+                    ])->first();
+
+                    if ($new_news && ($current_news->id != $new_news->id)) {
                         $fail('news already exist');
                     }
                 }
             ],
-            'body' => ['required'],
-            'thumbnail' => ['required', 'file', 'mimes:jpg,jpeg,png'],
-            'pictures' => ['required', 'array'],
-            'pictures.*' => ['required', 'file', 'mimes:jpg,jpeg,png']
+            'body' => ['required']
         ];
     }
 }

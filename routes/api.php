@@ -20,10 +20,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/news', [NewsController::class, 'create']);
 
+    Route::put('/news/{slug}', [NewsController::class, 'update_news']);
+
+    Route::put('/news/thumbnail/{slug}', [NewsController::class, 'update_thumbnail_news']);
+
+    Route::put('/news/pictures/{slug}', [NewsController::class, 'update_pictures_news']);
+
+    Route::delete('/news/{slug}', [NewsController::class, 'delete_news']);
+
     Route::prefix('/user')->group(function () {
         Route::get('', [UserController::class, 'get_user']);
 
         Route::get('/news', [UserController::class, 'get_user_news']);
     });
-
 });
