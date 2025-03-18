@@ -97,7 +97,7 @@ class LoginApiTest extends TestCase
 
     public function test_logout_fail()
     {
-        $response = $this->getJson('/api/logout', [
+        $response = $this->deleteJson('/api/logout', [
             'Authorization' => 'Bearer '
         ]);
 
